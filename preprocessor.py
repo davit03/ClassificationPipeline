@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 import pandas as pd
 from sklearn.impute import KNNImputer
@@ -8,31 +9,55 @@ class Preprocessor:
         self.threshold = threshold # for future correlation analysis
         self.n_neighbors = n_neighbors
         self.degree = degree # for creating polynomial features
-        self.knn_imputer = KNNImputer(n_neighbors=n_neighbors)
-        self.poly_features = PolynomialFeatures(degree=degree, include_bias=False)
-        self.scaler = StandardScaler()
+        
+        self.scaler = None
+        self.imputer = None
+        self.poly_features = None
 
-    def fit(self, X_train):
-        X_data = X_train.drop(columns=['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival']) 
-        # filled nan using knn method
-        X_imputed = self.knn_imputer.fit_transform(X_data) 
-        # finding the features with lowest correlation
-        correlation_matrix = X_imputed.corr().abs()
-        upper_triangle = correlation_matrix.where(np.triu(np.ones(correlation_matrix.shape), k=1).astype(np.bool))
-        low_correlation_features = [column for column in upper_triangle.columns if any(upper_triangle[column] < self.threshold)]
-        selected = X_imputed[low_correlation_features]
-        # creating polynomial features
-        X_poly = self.poly_features.fit_transform(selected)
-        poly_feature_names = self.poly_features.get_feature_names(low_correlation_features)
-        df_poly = pd.DataFrame(X_poly, columns=poly_feature_names)
-        X = pd.concat([X_imputed, df_poly], axis=1)
-        # scaling        
-        X_scaled = self.scaler.fit_transform(X)
-        return pd.DataFrame(X_scaled, columns=X.columns)
+    def load_model(self, filename="preprocessor_models.pkl"):     ### HOW DO I LOAD?
+        with open(filename, 'rb') as file:
+            loaded_models = pickle.load(file)
 
-    def transform(self, X_test):
-        X_imputed = self.knn_imputer.transform(X_test)
-        X_poly = self.poly_features.transform(X_imputed)
-        X_scaled = self.scaler.transform(X_poly)
-        df_result = pd.DataFrame(X_scaled, columns=self.columns_after_processing)
+        self.scaler = loaded_models['scaler']
+        self.imputer = loaded_models['imputer']
+        self.poly_features = loaded_models['poly_features']
+
+
+    def save_model(self, filename="preprocessor_models.pkl"):     ### HOW DO I SAVE?
+        models = {'scaler': self.scaler, 'imputer': self.imputer, 'poly_features': self.poly_features}
+        with open(filename, 'wb') as file:
+            pickle.dump(models, file)
+
+    def fit(self, x, use_saved_model=False, save_model = False, filename = "preprocessor_models.pkl"):
+        if use_saved_model:
+            self.load_model(filename)
+            
+        else:
+            self.scaler = StandardScaler()
+            self.imputer = KNNImputer(n_neighbors=self.n_neighbors)
+            self.poly_features = PolynomialFeatures(degree=self.degree, include_bias=False)
+            
+            data = x.drop(columns=['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival']) 
+            
+            self.imputer.fit(data) 
+            imputed_data = self.imputer.fit_transform(data)
+            
+            self.poly_features.fit(imputed_data)
+            data_poly = self.poly_features.fit_transform(imputed_data)
+            
+            self.scaler.fit(data_poly)
+            
+        if save_model:
+            self.save_model(filename)
+
+    def transform(self, X):
+        data = X.drop(columns=['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival']) 
+        if self.scaler is None or self.imputer is None or self.poly_features is None:
+            raise ValueError("Preprocessor has not been fitted. Call 'fit' method first.")
+        imputed_x = self.imputer.transform(data)
+        poly_x = self.poly_features.transform(imputed_x)
+        poly_columns = self.poly_features.get_feature_names(data.columns)
+        poly_df = pd.DataFrame(poly_x, columns=poly_columns)
+        X_scaled = self.scaler.transform(poly_df)
+        df_result = pd.DataFrame(columns = poly_columns, data = X_scaled)
         return df_result
