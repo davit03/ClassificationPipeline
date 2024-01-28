@@ -56,7 +56,7 @@ class Preprocessor:
             raise ValueError("Preprocessor has not been fitted. Call 'fit' method first.")
         imputed_x = self.imputer.transform(data)
         poly_x = self.poly_features.transform(imputed_x)
-        poly_columns = self.poly_features.get_feature_names(data.columns)
+        poly_columns = self.poly_features.get_feature_names_out(data.columns)
         poly_df = pd.DataFrame(poly_x, columns=poly_columns)
         X_scaled = self.scaler.transform(poly_df)
         df_result = pd.DataFrame(columns = poly_columns, data = X_scaled)
