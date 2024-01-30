@@ -2,8 +2,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn.impute import KNNImputer
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler, MinMaxScaler, RobustScaler, VarianceThreshold, \
-    SelectKBest, OneHotEncoder
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler, MinMaxScaler, RobustScaler, VarianceThreshold, SelectKBest
 
 
 class Preprocessor:
@@ -20,7 +19,6 @@ class Preprocessor:
         self.robust_scaler = None
         self.variance_selector = None
         self.k_best_selector = None
-        self.one_hot_encoder = None
 
     def load_model(self, filename="preprocessor_models.pkl"):
         with open(filename, 'rb') as file:
@@ -33,7 +31,6 @@ class Preprocessor:
         self.robust_scaler = loaded_models.get('robust_scaler')
         self.variance_selector = loaded_models.get('variance_selector')
         self.k_best_selector = loaded_models.get('k_best_selector')
-        self.one_hot_encoder = loaded_models.get('one_hot_encoder')
 
     def save_model(self, filename="preprocessor_models.pkl"):
         models = {
@@ -43,8 +40,7 @@ class Preprocessor:
             'min_max_scaler': self.min_max_scaler,
             'robust_scaler': self.robust_scaler,
             'variance_selector': self.variance_selector,
-            'k_best_selector': self.k_best_selector,
-            'one_hot_encoder': self.one_hot_encoder
+            'k_best_selector': self.k_best_selector
         }
         with open(filename, 'wb') as file:
             pickle.dump(models, file)
@@ -62,7 +58,6 @@ class Preprocessor:
             self.robust_scaler = RobustScaler()
             self.variance_selector = VarianceThreshold(threshold=self.threshold)
             self.k_best_selector = SelectKBest(k=self.k_best)
-            self.one_hot_encoder = OneHotEncoder()
 
             self.imputer.fit(data)
             imputed_data = self.imputer.fit_transform(data)
@@ -75,7 +70,6 @@ class Preprocessor:
             self.robust_scaler.fit(data_poly)
             self.variance_selector.fit(data_poly)
             self.k_best_selector.fit(data_poly)
-            self.one_hot_encoder.fit(data_poly)  # Assuming one-hot encoding categorical variables
 
         if save_model:
             self.save_model(filename)
@@ -97,7 +91,6 @@ class Preprocessor:
             ('robust_scaler', self.robust_scaler),
             ('variance_selector', self.variance_selector),
             ('k_best_selector', self.k_best_selector),
-            ('one_hot_encoder', self.one_hot_encoder),
             ('poly_features', PolynomialFeatures(degree=self.degree, include_bias=False)),
             ('standard_scaler', StandardScaler()),
             ('knn_imputer', KNNImputer(n_neighbors=self.n_neighbors))
