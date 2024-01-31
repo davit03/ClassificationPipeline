@@ -2,12 +2,11 @@ import pickle
 import numpy as np
 import pandas as pd
 from sklearn.base import TransformerMixin
-from sklearn.impute import KNNImputer
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler, MinMaxScaler, RobustScaler, VarianceThreshold, SelectKBest
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler, VarianceThreshold
 
 class Preprocessor(TransformerMixin):
-    def __init__(self, threshold=0.001, n_neighbors=5, degree=2, k_best=10):
-        self.threshold = threshold
+    def __init__(self, n_neighbors=5, degree=3, k_best=10):
         self.n_neighbors = n_neighbors
         self.degree = degree
         self.k_best = k_best
@@ -16,10 +15,7 @@ class Preprocessor(TransformerMixin):
         self.imputer = None
         self.poly_features = None
         self.min_max_scaler = None
-        self.robust_scaler = None
-        self.variance_selector = None
-        self.k_best_selector = None
-
+        
     def load_model(self, filename="preprocessor_models.pkl"):
         with open(filename, 'rb') as file:
             loaded_models = pickle.load(file)
@@ -28,9 +24,6 @@ class Preprocessor(TransformerMixin):
         self.imputer = loaded_models['imputer']
         self.poly_features = loaded_models['poly_features']
         self.min_max_scaler = loaded_models.get('min_max_scaler')
-        self.robust_scaler = loaded_models.get('robust_scaler')
-        self.variance_selector = loaded_models.get('variance_selector')
-        self.k_best_selector = loaded_models.get('k_best_selector')
 
     def save_model(self, filename="preprocessor_models.pkl"):
         models = {
@@ -38,9 +31,6 @@ class Preprocessor(TransformerMixin):
             'imputer': self.imputer,
             'poly_features': self.poly_features,
             'min_max_scaler': self.min_max_scaler,
-            'robust_scaler': self.robust_scaler,
-            'variance_selector': self.variance_selector,
-            'k_best_selector': self.k_best_selector
         }
         with open(filename, 'wb') as file:
             pickle.dump(models, file)
@@ -52,7 +42,7 @@ class Preprocessor(TransformerMixin):
             y = X[['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival']]  # Separate target variable
             data = X.drop(columns=['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival'])
 
-            self.imputer = KNNImputer(n_neighbors=self.n_neighbors)
+            self.imputer = SimpleImputer(n_neighbors=self.n_neighbors)
             self.poly_features = PolynomialFeatures(degree=self.degree, include_bias=False)
             self.scaler = StandardScaler()
             self.min_max_scaler = MinMaxScaler()
