@@ -4,7 +4,7 @@ from sklearn.preprocessing import PolynomialFeatures, StandardScaler, MinMaxScal
 from sklearn.base import BaseEstimator, TransformerMixin
 
 class Preprocessor(BaseEstimator, TransformerMixin):
-    def init(self, scaler="standard", degree=2, strategy="mean", threshold=3, remove_outliers=True, fill_na=True):
+    def __init__(self, scaler="standard", degree=2, strategy="mean", threshold=3, remove_outliers=True, fill_na=True):
         if scaler == "standard":
             self.scaler = StandardScaler()
         elif scaler == "minmax":
