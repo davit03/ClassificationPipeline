@@ -14,17 +14,23 @@ class Pipeline:
         dataset = pd.read_csv(datapath)
         
         if self.test_mode:
-            self.preprocessor.fit(dataset, use_saved_model=True)
-            self.preprocessor.transform(dataset)
-            # continue for the model part
+            targets = dataset['In-hospital_death']
+            features = dataset.drop(columns=['In-hospital_death'])
+            self.preprocessor.fit(features, use_saved_model=True)
+            preprocessed_features = self.preprocessor.transform(features)
+            predicted_features = self.model.predict(preprocessed_features)
+            self.model.score(preprocessed_features, targets)
         else:
             targets = dataset['In-hospital_death']
             features = dataset.drop(columns=['In-hospital_death'])
             X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2)
             self.preprocessor.fit(X_train)
-            self.preprocessor.transform(X_train)
-            # continue for the model part
-              
+            preprocessed_features =  self.preprocessor.transform(X_train)
+            self.model.fit(preprocessed_features, y_train)
+            self.model.predict(self.preprocessor.transform(X_test))
+            self.model.score(self.preprocessor.transform(X_test), y_test)
+            
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run in test mode if --test is provided.")
     parser.add_argument("--test", action="store_true", help="Run in test mode.")
