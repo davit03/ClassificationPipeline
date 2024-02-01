@@ -1,65 +1,41 @@
-import pickle
 import numpy as np
-import pandas as pd
-from sklearn.base import TransformerMixin
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler, MinMaxScaler
+from sklearn.base import BaseEstimator, TransformerMixin
 
-class Preprocessor(TransformerMixin):
-    def __init__(self, n_neighbors=5, degree=3):
-        self.n_neighbors = n_neighbors
-        self.degree = degree
-
-        self.scaler = None
-        self.imputer = None
-        self.poly_features = None
-        
-    def load_model(self, filename="preprocessor_models.pkl"):
-        with open(filename, 'rb') as file:
-            loaded_models = pickle.load(file)
-
-        self.scaler = loaded_models['scaler']
-        self.imputer = loaded_models['imputer']
-        self.poly_features = loaded_models['poly_features']
-
-    def save_model(self, filename="preprocessor_models.pkl"):
-        models = {
-            'scaler': self.scaler,
-            'imputer': self.imputer,
-            'poly_features': self.poly_features,
-        }
-        with open(filename, 'wb') as file:
-            pickle.dump(models, file)
-
-    def fit(self, X, use_saved_model=False, save_model=False, filename="preprocessor_models.pkl"):
-        if use_saved_model:
-            self.load_model(filename)
-        else:
-            y = X[['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival']]
-            data = X.drop(columns=['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival'])
-
-            self.imputer = SimpleImputer(n_neighbors=self.n_neighbors)
-            self.poly_features = PolynomialFeatures(degree=self.degree, include_bias=False)
+class Preprocessor(BaseEstimator, TransformerMixin):
+    def init(self, scaler="standard", degree=2, strategy="mean", threshold=3, remove_outliers=True, fill_na=True):
+        if scaler == "standard":
             self.scaler = StandardScaler()
+        elif scaler == "minmax":
+            self.scaler = MinMaxScaler()
+        else:
+            raise ValueError("Invalid scaler type, must be 'standard' or 'minmax'")
+        self.remove_outliers = remove_outliers
+        self.threshold = threshold
+        self.fill_na = fill_na
+        self.imputer = SimpleImputer(strategy=strategy)
+        self.poly_features = PolynomialFeatures(degree=degree)
 
-            imputed_data = self.imputer.fit_transform(data)
-            data_poly = self.poly_features.fit_transform(imputed_data)
-            self.scaler.fit(data_poly)
-
-        if save_model:
-            self.save_model(filename)
+    def fit(self, X, y=None):
+        if self.fill_na:
+            X_imputed = self.imputer.fit_transform()
+        else:
+            X_imputed = X.copy()
+        X_poly = self.poly_features.fit_transform(X_imputed)
+        self.scaler.fit(X_poly)
+        return self
 
     def transform(self, X):
-        data = X.drop(columns=['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival'])
-        if self.scaler is None or self.imputer is None or self.poly_features is None:
-            raise ValueError("Preprocessor has not been fitted. Call 'fit' method first.")
-
-        y = X[['SAPS-I', 'SOFA', 'Length_of_stay', 'Survival']]
-        imputed_x = self.imputer.transform(data)
-        poly_x = self.poly_features.transform(imputed_x)
-        poly_columns = self.poly_features.get_feature_names_out(data.columns)
-        poly_df = pd.DataFrame(poly_x, columns=poly_columns)
-        X_scaled = self.scaler.transform(poly_df)
-
-        df_result = pd.concat([y, pd.DataFrame(columns=poly_columns, data=X_scaled)], axis=1)
-        return df_result
+        if self.fill_na:
+            X_imputed = self.imputer.transform(X)
+        else:
+            X_imputed = X.copy()
+        X_poly = self.poly_features.transform(X_imputed)
+        X_scaled = self.scaler.transform(X_poly)
+        if self.remove_outliers:
+            # z score method to remove outliers with std greater than or less than threshold
+            z_scores = np.abs((X - X.mean(axis=0))/X.std(axis=0))
+            mask = (z_scores < self.threshold).all(axis=1)
+            X_scaled = X_scaled[mask, :]
+        return X_scaled
