@@ -3,7 +3,6 @@ import pickle
 import json
 import pandas as pd
 from model import Model
-from preprocessor import Preprocessor
 from sklearn.model_selection import train_test_split
 
 class Pipeline:
@@ -11,7 +10,7 @@ class Pipeline:
         self.test_mode = test_mode
         self.save_models = save_models
         self.model = Model()
-        self.preprocessor = Preprocessor()
+        # Preprocessor was used in model.py
 
     def run(self, datapath):
         dataset = pd.read_csv(datapath)
@@ -22,22 +21,15 @@ class Pipeline:
             self.model = loaded_model
             
             results = self.model.predict(dataset)
-            dictionary = {'predict_probas': results[0], 'threshold': results[1]}
+            dictionary = {'predict_probas': results[0].tolist(), 'threshold': results[1]}
             with open("predictions.json", "w") as outfile: 
                 json.dump(dictionary, outfile)
             
         else:
             targets = dataset['In-hospital_death']
             features = dataset.drop(columns=['In-hospital_death'])
-            X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.2)
-            
-            self.model.fit(X_train, y_train)
-            results = self.model.predict(X_test)
-            
-            dictionary = {'predict_probas': results[0], 'threshold': results[1]}
-            with open("predictions.json", "w") as outfile: 
-                json.dump(dictionary, outfile)
-            
+
+            self.model.fit(features, targets)
             if self.save_models:
                 pickle.dump(self.model, open('model.pkl', 'wb'))
                 
