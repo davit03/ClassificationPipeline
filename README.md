@@ -7,8 +7,7 @@ The project includes four file:
 -   `model.py` 
 -   `run_pipeline.py` 
 
-Additionally, there are 2 saved models
--   `preprocess_model.pkl` - preprocessing model
+Additionally, there are 1 saved model
 -   `model.pkl` - trained ML model
 
 
