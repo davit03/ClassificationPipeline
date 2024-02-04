@@ -7,9 +7,9 @@ The project includes four file:
 -   `model.py` 
 -   `run_pipeline.py` 
 
-Additionally, there are 1 saved model
+Additionally, there are 2 saved model
 -   `model.pkl` - trained ML model
-
+-   `preprocessor.pkl` - preprocessing model
 
 ## Train mode
 In order to train a model on your data, use the following command 
