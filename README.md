@@ -7,9 +7,9 @@ The project includes four file:
 -   `model.py` 
 -   `run_pipeline.py` 
 
-Additionally, there are 1 saved model
+Additionally, there are 2 saved model
 -   `model.pkl` - trained ML model
-
+-   `preprocessor.pkl` - preprocessing model
 
 ## Train mode
 In order to train a model on your data, use the following command 
@@ -20,7 +20,7 @@ python3 run_pipeline.py --data_path Survival_dataset.csv
 
 If you want to save the trained models (both preprocessor and the ML model), use the following command:
 ```python
-python3 run_pipeline.py -- save_models --data_path Survival_dataset.csv
+python3 run_pipeline.py --save_models --data_path Survival_dataset.csv
 ```
 
 ## Test mode
